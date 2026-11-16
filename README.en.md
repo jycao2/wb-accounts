@@ -62,6 +62,16 @@ account are **not** topped up. Delete the matching ledger entries to sync that s
 
 ## Quick start
 
+Get the code first, either way:
+
+```bat
+git clone https://github.com/jycao2/wb-accounts.git
+cd wb-accounts
+```
+
+Or open the repository page → **Code → Download ZIP** and unzip. Every command below runs inside
+that directory.
+
 **One-click install (recommended).** Double-click `install.cmd` in the repository root.
 It installs `wb-accounts` plus the bundled `vendor/workbuddy-daily-claim` skill into
 `%USERPROFILE%\.workbuddy\skills\`, keeps any existing `state\`, locates Python and runs

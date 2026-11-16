@@ -57,6 +57,15 @@ wb-accounts 把每个号的**登录态快照**和**令牌通道**管理起来：
 
 ## 快速开始
 
+先把代码拿到本机，任选一种：
+
+```bat
+git clone https://github.com/jycao2/wb-accounts.git
+cd wb-accounts
+```
+
+或者打开仓库页 → 右上角 **Code → Download ZIP** → 解压。下面所有命令都在这个目录里执行。
+
 ### 0. 一键安装（推荐，新电脑照这个来）
 
 双击仓库根目录的 **`install.cmd`**。它会：
