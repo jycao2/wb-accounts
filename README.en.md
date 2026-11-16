@@ -1,5 +1,7 @@
 # wb-accounts · Multi-account manager for WorkBuddy Desktop
 
+![wb-accounts banner](docs/images/banner.png)
+
 > Manage several WorkBuddy desktop accounts on one machine — **register once, skip the QR code forever**.
 > Ships with a local dashboard, one-click check-in, and one-click account switching —
 > **your tasks come with you, no starting over**.
@@ -33,12 +35,18 @@ test accounts, that gets old fast.
 | **One-click switch** | Quit client → write state → verify → relaunch; the current account's tasks can come along |
 | **Doctor** | `doctor` tells you exactly what is not configured |
 
+![Local dashboard](docs/images/panel.png)
+
+*Dashboard mock — your real data never leaves this machine*
+
 ## Tasks come along when you switch
 
 The painful part of switching is not signing in again — it is that **all your previous work stays
 behind in the old account**. Tick "copy task data" in the switch dialog (**off by default**, nothing
 happens unless you tick it) and the current account's tasks are duplicated under the target account:
 the sidebar is populated, tasks open, and you can keep chatting.
+
+![Switch flow](docs/images/switch-flow.png)
 
 - Session entries, full transcripts (including tool calls), containing groups and session
   workspaces are copied;
@@ -47,6 +55,8 @@ the sidebar is populated, tasks open, and you can keep chatting.
   default) with search and per-item toggles;
 - The whole `workbuddy.db` is backed up to `wb-accounts/backups/` first; each session commits
   individually and a failure is recorded without aborting the switch.
+
+![Task copy](docs/images/task-copy.png)
 
 Three boundaries worth knowing up front:
 
