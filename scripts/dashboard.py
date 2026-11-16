@@ -55,7 +55,50 @@ STATE_DIR = ROOT.parent / "state"
 AUTH_LOG = STATE_DIR / "grab.log"
 HOT_STATE = STATE_DIR / "hot-switch.json"
 HOT_LOG = STATE_DIR / "hot-switch.log"
-VERSION = "1.1.0"
+VERSION = "1.12.0"
+
+
+def _token_file() -> Path:
+    """面板 token 的持久化位置（与 wb_accounts.py 的保险库目录同源）。"""
+    raw = (os.environ.get("WB_ACCOUNTS_HOME") or "").strip()
+    base = Path(raw).expanduser() if raw else Path.home() / ".workbuddy" / "wb-accounts"
+    return base / "dashboard-token.txt"
+
+
+def _persist_token(tok: str) -> None:
+    try:
+        p = _token_file()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(tok + "\n", encoding="utf-8")
+        try:
+            os.chmod(p, 0o600)  # Windows 上是宽松映射，尽力而为
+        except OSError:
+            pass
+    except OSError:
+        pass
+
+
+def resolve_dashboard_token() -> str:
+    """解析面板 token：环境变量 > 持久化文件 > 新生成并落盘。
+
+    落盘是关键：启动器（vbs）可以读同一份文件拼出带 token 的链接，
+    这样就不必把 token 写死在脚本里，换浏览器/清 cookie 后打开也不会 403。
+    """
+    env_tok = (os.environ.get("WB_DASHBOARD_TOKEN") or "").strip()
+    if env_tok:
+        _persist_token(env_tok)  # 固定 token 也落盘，启动器才能读到
+        return env_tok
+    path = _token_file()
+    try:
+        if path.is_file():
+            tok = path.read_text(encoding="utf-8").strip()
+            if len(tok) >= 16:
+                return tok
+    except OSError:
+        pass
+    tok = secrets.token_urlsafe(24)
+    _persist_token(tok)
+    return tok
 MAX_BODY = 64 * 1024
 CLI_TIMEOUT = 45
 SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}\Z")
@@ -228,7 +271,7 @@ def _claim_state_for(acc_id: str) -> dict:
         ent = _claim_cache.get(acc_id)
         if ent and ent.get("date") == today and now - ent.get("at", 0) < ent.get("ttl", CLAIM_TTL):
             return dict(ent)
-    r = run_cli(["run-as", acc_id, "claim", "status"], timeout=90)
+    r = run_cli(["run-as", acc_id, "claim", "status"], timeout=150)
     stdout = (((r.get("data") or {}).get("result") or {}).get("stdout") or "")
     parsed = _parse_claim_text(stdout) if r.get("ok") else None
     if parsed:
@@ -242,6 +285,36 @@ def _claim_state_for(acc_id: str) -> dict:
     with _claim_lock:
         _claim_cache[acc_id] = dict(ent)
     return ent
+
+
+def warm_claim_states() -> dict:
+    """后台预热各账号的积分查询缓存（串行，避免与自动采集抢资源）。
+
+    新开面板的瞬间，claim_state 请求常与「打开即同步」（快照刷新 + token auto）
+    撞在一起：保险库锁/网络/子进程互相排队，单次查询超时后被 60s 错误短缓存
+    钉住，页面上非当前账号就显示「—」。这里在自动采集完成后串行预查一遍
+    （成功缓存 5 分钟），页面首次请求直接命中真数据。
+    """
+    try:
+        sys.path.insert(0, str(ROOT))
+        import wb_accounts as W  # noqa: PLC0415
+        idx = json.loads((Path(W.HOME) / "index.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {"warmed": 0, "total": 0}
+    ids = [str(r.get("id") or "").strip() for r in (idx.get("accounts") or [])]
+    ids = [v for v in ids if SAFE_ID.fullmatch(v)]
+    ok = 0
+    for v in ids:
+        try:
+            ent = _claim_state_for(v)
+            if ent.get("balance") is not None or ent.get("claimed_today") is not None:
+                ok += 1
+        except Exception:  # noqa: BLE001
+            pass
+    if ok < len(ids):
+        print("[wb-accounts] 积分预热 %d/%d 成功（失败的下一次页面刷新会自动补查）"
+              % (ok, len(ids)), file=sys.stderr, flush=True)
+    return {"warmed": ok, "total": len(ids)}
 
 
 # ---------------------------------------------------------------------------
@@ -867,43 +940,6 @@ def make_server(port: int, token: str) -> DashboardServer:
     raise SystemExit("无法绑定 127.0.0.1 端口（%d 起）：%s" % (port, last))
 
 
-def vault_home() -> Path:
-    """保险库目录（与 wb_accounts.py 的 env_home 保持一致）。"""
-    raw = (os.environ.get("WB_ACCOUNTS_HOME") or "").strip()
-    return (Path(raw).expanduser() if raw else Path.home() / ".workbuddy" / "wb-accounts").resolve()
-
-
-def resolve_dashboard_token() -> str:
-    """解析面板访问 token，优先级：环境变量 > 持久化文件 > 新生成并落盘。
-
-    持久化后浏览器书签与已种下的 cookie 在重启/开机自启后依然有效；
-    也避免把 token 写死在任何启动脚本里（开源仓库里不该出现固定 token，
-    每个用户首次运行会自动生成本机专属的一份）。
-    """
-    env_tok = (os.environ.get("WB_DASHBOARD_TOKEN") or "").strip()
-    if env_tok:
-        return env_tok
-    path = vault_home() / "dashboard-token.txt"
-    try:
-        if path.is_file():
-            tok = path.read_text(encoding="utf-8").strip()
-            if len(tok) >= 16:
-                return tok
-    except OSError:
-        pass
-    tok = secrets.token_urlsafe(24)
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(tok + "\n", encoding="utf-8")
-        try:
-            os.chmod(path, 0o600)  # Windows 上是宽松映射，非 0 即尽力而为
-        except OSError:
-            pass
-    except OSError:
-        pass
-    return tok
-
-
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="dashboard.py", description="wb-accounts 本地可视化面板")
     ap.add_argument("--port", type=int, default=8765, help="端口，默认 8765；0 = 系统分配")
@@ -922,8 +958,8 @@ def main(argv=None) -> int:
         print("找不到 dashboard.html: %s" % PAGE, file=sys.stderr)
         return 1
 
-    # 端口已被占用 = 面板多半已在运行（常驻 / 开机自启 / 上一实例），不重复启动。
-    if a.port:
+    # 常驻模式（WB_DASHBOARD_TOKEN 固定）下避免重复启动：端口已被占 = 面板已在运行
+    if (os.environ.get("WB_DASHBOARD_TOKEN") or "").strip() and a.port:
         try:
             import socket
             s = socket.socket()
@@ -933,16 +969,15 @@ def main(argv=None) -> int:
         except OSError:
             busy = False
         if busy:
-            print("[wb-accounts] 端口 %d 已被占用（面板可能已在运行），本次启动跳过。"
-                  "需要另开实例请用 --port 指定其他端口。" % a.port,
+            print("[wb-accounts] 面板已在运行（127.0.0.1:%d），本次启动跳过。" % a.port,
                   file=sys.stderr, flush=True)
             return 0
 
     # 先监听、后采集：快照刷新 + 令牌续期要跑几十秒，如果阻塞在 serve 之前，
     # 双击 vbs 打开的浏览器会碰到"拒绝连接"。改为端口立即就绪，采集放后台线程，
     # 完成后把结果补打到 stdout（auto_capture / auto_tokens 字段在补充 JSON 里）。
-    # 默认从持久化文件取 token（首次自动生成并落盘）；设置 WB_DASHBOARD_TOKEN 可覆盖，
-    # 让浏览器书签/已种下的 cookie 在重启后继续有效。仍只绑 127.0.0.1 + 校验 Host。
+    # token 解析：WB_DASHBOARD_TOKEN > dashboard-token.txt > 新生成并落盘。
+    # 落盘后启动器可读出 token 拼成带 ?t= 的链接，避免裸地址 403。
     token = resolve_dashboard_token()
     httpd = make_server(a.port, token)
     port = httpd.server_address[1]
@@ -973,6 +1008,11 @@ def main(argv=None) -> int:
         print(json.dumps({"ok": True, "background": True,
                           "auto_capture": auto, "auto_tokens": auto_tokens},
                          ensure_ascii=False), flush=True)
+        # 自动任务都跑完了再预热积分缓存：这时保险库空闲，查询最稳
+        try:
+            warm_claim_states()
+        except Exception:  # noqa: BLE001
+            pass
 
     if not (a.no_auto_capture and a.no_auto_token):
         threading.Thread(target=_auto_bg, daemon=True, name="wb-auto-capture").start()

@@ -564,6 +564,7 @@ function todayStr(){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 // 只读查询各账号「今日是否已签」，带当日缓存；失败静默，不影响面板使用
+let claimRetryN = 0;
 async function refreshClaimState(){
   const list = (S && S.list && S.list.accounts) || [];
   const ids = list.filter(a => chReady(a)).map(a => a.id);
@@ -579,6 +580,15 @@ async function refreshClaimState(){
       claimState[st.id] = st;
     });
     if (changed) renderAccounts();
+    // 新开面板的瞬间，查询可能与「打开即同步」（快照刷新 + 令牌续期）抢资源而失败，
+    // 且失败会被短缓存 60s。只要有号还没查到余额，就隔 70s（>60s 缓存期）自动补查。
+    const missing = (r.data.states || []).some(s => s.balance == null && s.claimed_today == null);
+    if (missing && claimRetryN < 5){
+      claimRetryN++;
+      setTimeout(refreshClaimState, 70000);
+    } else if (!missing){
+      claimRetryN = 0;
+    }
   } catch (e) { /* 查询失败不阻塞面板 */ }
 }
 async function act(action, params){
@@ -914,7 +924,9 @@ function renderAccounts(){
         (a.note ? '<div class="sub" style="margin-bottom:9px">备注：' + esc(a.note) + '</div>' : '') +
         '<div class="sub" style="margin-bottom:9px">账户积分余额：<b>' + (st.balance ? esc(st.balance) : '—') +
           '</b> · 活动积分(累计)：<b>' + (st.activity_credits != null ? esc(st.activity_credits) : '—') + '</b>' +
-          (st.balance ? '' : ' · 该号仅网页会话、无令牌通道，查不到账户余额') + '</div>' +
+          (st.balance ? '' : ' · ' + ((st.error || a.token_channel)
+            ? '余额查询失败（打开瞬间的自动任务还没跑完），稍后自动重试'
+            : '该号仅网页会话、无令牌通道，查不到账户余额')) + '</div>' +
         '<div class="ops">' +
           '<button class="mini" data-act="copy_switch" data-id="' + esc(a.id) + '">复制切换命令</button>' +
           (a.is_current_client
