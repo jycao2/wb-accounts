@@ -1,0 +1,31 @@
+# 运行时状态与凭据 —— 绝不提交
+state/
+*.log
+*.code
+dashboard-token.txt
+atrest.bin
+web-cred.json
+web-owner.json
+hot-switch.json
+snapshots/
+tokens/
+trash/
+backups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node
+node_modules/
+package-lock.json
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

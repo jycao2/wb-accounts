@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WorkBuddy 多账号管家 · 控制台</title>
+<!-- 本地面板：由 scripts/dashboard.py 提供，命令入口 wb_accounts.py dashboard -->
+<style>
+:root{color-scheme:dark;--bg:#0d1117;--card:#161b22;--line:#30363d;--soft:#21262d;
+--fg:#e6edf3;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--amber:#d29922;--red:#f85149}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.wrap{max-width:1320px;margin:0 auto;padding:26px 24px 48px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--soft);border:1px solid var(--line);border-radius:7px;
+padding:6px 11px;font-size:12px;transition:.15s}
+button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:#1f6feb22;border-color:#1f6feb;color:#79c0ff}
+button.danger:hover{border-color:var(--red);color:var(--red)}
+button.mini{padding:4px 8px;font-size:11px}
+button.mini.go{border-color:#238636;color:#7ee787}
+button.mini.done{border-color:var(--line);color:var(--muted);background:var(--card)}
+button.mini.done:hover{border-color:var(--line);color:var(--muted)}
+button.mini.busy{border-color:#d29922;color:#e3b341}
+button.mini.sw{border-color:#1f6feb;color:#79c0ff}
+.tag.today{border-color:#238636;color:#7ee787;background:#23863618}
+.dlg-wrap{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:99}
+.dlg-wrap[hidden]{display:none}
+.dlg{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;width:min(480px,90vw)}
+.dlg h3{margin:0 0 10px;font-size:15px;font-weight:500;color:var(--fg)}
+.dlg-body{font-size:13px;color:#c9d1d9;white-space:pre-wrap;line-height:1.7;max-height:46vh;overflow:auto}
+.dlg-ops{display:flex;gap:9px;justify-content:flex-end;margin-top:16px}
+.dlg-ops button{min-width:78px}
+.dlg-opt{display:flex;align-items:flex-start;gap:10px;margin-top:14px;padding:11px 12px;
+border:1px solid var(--line);border-radius:9px;background:var(--soft);cursor:pointer;
+transition:.15s;user-select:none}
+.dlg-opt[hidden]{display:none}
+.dlg-opt:hover{border-color:#3d444d}
+.dlg-opt.on{border-color:#1f6feb;background:#1f6feb14}
+.dlg-opt input,.dlg-list input[type="checkbox"]{appearance:none;-webkit-appearance:none;flex:0 0 15px;box-sizing:border-box;
+width:15px;height:15px;padding:0;margin:2px 0 0;border:1.5px solid #4b5563;border-radius:4px;
+background:var(--bg);position:relative;cursor:pointer;transition:.15s;outline:none}
+.dlg-opt input:hover,.dlg-list input[type="checkbox"]:hover{border-color:#6e7681}
+.dlg-opt input:checked,.dlg-list input[type="checkbox"]:checked{background:#1f6feb;border-color:#1f6feb}
+.dlg-opt input:checked::after,.dlg-list input[type="checkbox"]:checked::after{content:"";position:absolute;left:4px;top:1px;width:4.5px;
+height:8.5px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.dlg-opt input:focus-visible{box-shadow:0 0 0 3px #1f6feb55}
+.dlg-opt-txt{flex:1;min-width:0}
+.dlg-opt-t{display:block;font-size:12.5px;font-weight:600;color:var(--fg);line-height:1.5}
+.dlg-opt-d{display:block;margin-top:3px;font-size:12px;line-height:1.6;color:var(--muted)}
+#dlg-list{margin-top:10px}
+/* 使用手册 */
+#help .help-box{width:min(780px,92vw);max-height:86vh;display:flex;flex-direction:column;padding-bottom:14px}
+#help .help-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#help .help-head h3{margin:0}
+#help .help-body{overflow:auto;margin-top:4px;padding-right:8px}
+#help h4{margin:18px 0 6px;font-size:13px;color:#79c0ff;font-weight:650;letter-spacing:.3px}
+#help h4:first-child{margin-top:2px}
+#help p,#help li{font-size:12.5px;line-height:1.75;color:#c9d1d9;margin:0 0 6px}
+#help ul,#help ol{margin:0 0 6px;padding-left:19px}
+#help li{margin-bottom:3px}
+#help code{background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+font:11.5px Consolas,"Courier New",monospace;color:#a5c9ff;word-break:break-all}
+#help b{color:var(--fg)}
+#help .help-tip{background:#1f6feb14;border:1px solid #1f6feb44;border-radius:8px;
+padding:9px 12px;font-size:12px;line-height:1.7;color:#a5c9ff;margin:9px 0}
+#help .help-qa{border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:7px 0;background:var(--bg)}
+#help .help-qa b{display:block;font-size:12.5px;margin-bottom:4px}
+#help .help-qa span{display:block;font-size:12px;line-height:1.7;color:var(--muted)}
+#help .help-qa code{color:#a5c9ff}
+.dlg-list-head{display:flex;gap:9px;align-items:center;margin-bottom:7px}
+.dlg-ck{display:flex;gap:7px;align-items:center;font-size:12px;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
+.dlg-ck input{margin:0}
+.dlg-q{flex:1;min-width:0;padding:5px 9px;font-size:12px}
+.dlg-items{max-height:36vh;overflow:auto;border:1px solid var(--line);border-radius:9px;background:var(--bg)}
+.dlg-li{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border-bottom:1px solid var(--line);cursor:pointer}
+.dlg-li:last-child{border-bottom:none}
+.dlg-li:hover{background:#ffffff08}
+.dlg-li .dlg-li-txt{flex:1;min-width:0}
+.dlg-li-t{display:block;font-size:12.5px;font-weight:600;color:var(--fg);line-height:1.45;word-break:break-all}
+.dlg-li-m{display:block;margin-top:2px;font-size:11.5px;color:var(--muted);line-height:1.4}
+.dlg-empty{padding:12px;color:var(--muted);font-size:12px;text-align:center}
+.claim-result{margin-top:10px;font-size:12px;line-height:1.65;white-space:pre-wrap;max-height:160px;overflow:auto;
+border-left:2px solid var(--line);padding-left:9px;color:var(--muted)}
+.claim-result.good{border-left-color:var(--green);color:#7ee787}
+.claim-result.bad{border-left-color:var(--red);color:#ff7b72}
+.claim-result[hidden]{display:none}
+.auth-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;border-top:1px dashed var(--line)}
+.auth-row:first-child{border-top:0;padding-top:2px}
+.auth-row code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:11px;color:var(--muted)}
+.auth-row .sub{margin-left:auto}
+.steps{margin:11px 0 12px;padding-left:19px;font-size:12.5px;color:var(--muted);line-height:1.75}
+.steps li{margin:3px 0}
+.steps b{color:var(--fg);font-weight:500}
+.auth-log{margin-top:11px;max-height:200px;overflow:auto;background:#0b0f14;border:1px solid var(--line);
+border-radius:8px;padding:9px 10px;font:11.5px/1.55 ui-monospace,Consolas,monospace;
+white-space:pre-wrap;color:#c9d1d9}
+.auth-log[hidden]{display:none}
+input,select{background:#0d1117;border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--blue)}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 5px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:21px;margin:0 0 2px;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:12px}
+.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border:1px solid var(--line);
+border-radius:20px;padding:4px 11px;font-size:12px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--muted)}
+.dot.g{background:var(--green)}.dot.a{background:var(--amber)}.dot.r{background:var(--red)}.dot.b{background:var(--blue)}
+.notice{background:#1f6feb18;border:1px solid #1f6feb66;border-radius:9px;padding:11px 15px;
+font-size:12px;color:#a5c9ff;margin-bottom:18px}
+.notice b{color:#d6e8ff}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+.kpi b{display:block;font-size:26px;line-height:1.25;font-weight:650}
+.kpi span{color:var(--muted);font-size:12px}
+.kpi small{display:block;color:var(--muted);font-size:11px;margin-top:5px;word-break:break-all}
+.alert{border-radius:9px;padding:11px 15px;font-size:13px;margin-bottom:16px}
+.alert.warn{background:#d2992220;border:1px solid #d2992288;color:#e3b341}
+.alert.good{background:#3fb95018;border:1px solid #3fb95066;color:#7ee787}
+.cols{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:16px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px;margin-bottom:16px}
+.card h2{font-size:14px;margin:0 0 14px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h2 small{font-weight:400;color:var(--muted);font-size:11px}
+.stack{display:flex;flex-direction:column;gap:11px}
+.acct{background:#0d1117;border:1px solid var(--line);border-radius:9px;padding:14px}
+.acct.cur{border-color:#1f6feb;background:#0d1626}
+.acct-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.acct-title{font-size:15px;font-weight:650}
+.acct-title code{font-size:12px;color:var(--muted);font-weight:400;margin-left:7px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.tag{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:1px 8px;font-size:11px;color:var(--muted)}
+.tag.cur{background:#1f6feb33;border-color:#1f6feb;color:#79c0ff}
+.tag.ok{background:#3fb95022;border-color:#3fb950;color:#7ee787}
+.tag.warn{background:#d2992222;border-color:#d29922;color:#e3b341}
+.tag.bad{background:#f8514922;border-color:#f85149;color:#ff7b72}
+.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 14px;
+margin:12px 0;font-size:12px;color:var(--muted)}
+.meta b{color:var(--fg);font-weight:500;font-family:Consolas,monospace}
+.ops{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:11px}
+.field{margin-bottom:11px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn-grid button{width:100%;text-align:left}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:13px;
+overflow:auto;font:12px/1.65 Consolas,"Courier New",monospace;margin:0;white-space:pre-wrap;word-break:break-all}
+pre.cmds{color:#a5c9ff;font-size:11px}
+.console{position:relative}
+.console .tools{position:absolute;right:9px;top:8px;display:flex;gap:6px}
+#out{max-height:300px;overflow:auto;color:#c9d1d9}
+.empty{color:var(--muted);font-size:13px;padding:16px 4px;text-align:center}
+footer{color:#6e7681;font-size:11px;text-align:center;margin-top:22px;line-height:1.8}
+#toast{position:fixed;right:22px;bottom:22px;background:var(--card);border:1px solid var(--line);
+border-radius:9px;padding:11px 16px;font-size:13px;box-shadow:0 8px 30px #0008;display:none;z-index:9;max-width:380px}
+#toast.err{border-color:var(--red);color:#ff7b72}#toast.ok{border-color:var(--green);color:#7ee787}
+.spin{color:var(--muted);font-size:12px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>WorkBuddy 多账号管家 <span style="color:var(--muted);font-size:13px;font-weight:400">控制台</span></h1>
+    <div class="sub">本地可视化面板 · 只监听 127.0.0.1 · 页面不含任何令牌 / 信封 / 昵称 / 手机号明文</div>
+  </div>
+  <div class="top-actions">
+    <span class="badge" id="client-badge"><i class="dot"></i>检测中…</span>
+    <span class="badge" id="ver-badge">—</span>
+    <button data-act="help">📖 使用手册</button>
+    <button data-act="reload">↻ 刷新状态</button>
+    <button class="danger" data-act="shutdown">关闭面板</button>
+  </div>
+</header>
+
+<div class="notice">
+  <b>能做的：</b>看状态、采集当前账号、改别名、切换预览、体检、批量续期、按账号查状态、归档、
+  <b>签到领积分</b>（写操作，点一次弹一次确认）、<b>切换客户端账号</b>（一键：自动退出客户端 →
+  写入目标登录态 → 自动重开；<b>本对话会中断</b>，重开后即是新账号）。
+  <b>打开即采集：</b>每次启动面板 / 加载本页，都会自动把客户端<b>当前登录的号</b>收进保险库
+  （没登记过就采集，登记过就用最新登录态刷新快照，令牌轮换后自动变新；只写本地加密快照，不动客户端）。
+  <b>面板刻意不做的：</b><code>rollback</code> / 导入 refresh token / 任意 raw 接口 ——
+  令牌绝不进浏览器；回滚请在终端执行 <code>python scripts/wb_accounts.py rollback</code>。
+  下方「终端命令速查」给出可复制的精确命令。
+</div>
+
+<section class="kpis">
+  <div class="kpi"><b id="k-count">—</b><span>已登记账号</span><small id="k-active"></small></div>
+  <div class="kpi"><b id="k-token">—</b><span>通道已就绪</span><small>令牌通道或网页会话，任一可用即可签到</small></div>
+  <div class="kpi"><b id="k-warn">—</b><span>临近 / 已过期</span><small>按快照 access 到期估算</small></div>
+  <div class="kpi"><b id="k-current" style="font-size:15px">—</b><span>客户端当前账号</span><small id="k-uid"></small></div>
+</section>
+
+<div id="alert"></div>
+<div id="switch-banner"></div>
+<div id="auto-cap"></div>
+
+<div class="cols">
+  <div>
+    <section class="card">
+      <h2>账号列表 <small id="acct-sub"></small></h2>
+      <div class="stack" id="accounts"><div class="empty">加载中…</div></div>
+    </section>
+
+    <section class="card">
+      <h2>最近一次执行 <small>命令与脱敏结果</small></h2>
+      <div class="console">
+        <div class="tools"><button class="mini" data-act="copy-out">复制结果</button></div>
+        <pre id="out">尚未执行任何操作。</pre>
+      </div>
+    </section>
+  </div>
+
+  <aside>
+    <section class="card">
+      <h2>登记当前账号 <small>capture</small></h2>
+      <div class="field"><label>别名（必填）</label><input id="cap-label" placeholder="例如：主号 / 小号A" maxlength="40"></div>
+      <div class="field"><label>ID（可选，留空自动生成）</label><input id="cap-id" placeholder="main" maxlength="64"></div>
+      <div class="field"><label>备注（可选）</label><input id="cap-note" placeholder="用途说明" maxlength="120"></div>
+      <div class="row">
+        <button class="primary" data-act="capture">采集当前登录的账号</button>
+        <button data-act="current">先看当前是谁</button>
+      </div>
+      <div class="sub" style="margin-top:9px">采集的是客户端此刻登录的那个号。要登记多个号，在客户端依次登录、每次回来点一次采集。</div>
+    </section>
+
+    <section class="card">
+      <h2>令牌配置引导 <small>打开即自动配置</small></h2>
+      <div id="auto-token"></div>
+      <div id="auth-state"><div class="sub">加载中…</div></div>
+      <ol class="steps">
+        <li><b>点「打开授权窗口」</b>：会弹出一个独立的浏览器窗口（不碰你日常浏览器），在里头登录 WorkBuddy 官网 —— <b>手机号验证码、微信扫码都支持</b>。要登录<b>另一个新账号</b>时点「换号登录（清空会话）」，否则窗口里还是上次的登录状态、会几秒自动关闭。</li>
+        <li><b>等它自己收尾</b>：登录成功后自动抓取凭据、打接口校验、写入本机 <code>state/</code>；令牌不进这个网页。验证码登录不发 Bearer，脚本会用会话 cookie 实测校验，<b>通过即立即收尾，不用等满 15 分钟</b>。</li>
+        <li><b>看到「已配」就能签</b>：回到下方卡片签到即可。若抓到长效 refreshToken，则以后永久免登录。</li>
+      </ol>
+      <div class="row">
+        <button class="primary" data-act="auth-start">打开授权窗口</button>
+        <button data-act="auth-fresh">换号登录（清空会话）</button>
+        <button data-act="auth-check">刷新状态</button>
+      </div>
+      <pre id="auth-log" class="auth-log" hidden></pre>
+      <div class="sub" style="margin-top:9px">
+        授权由本地 node 运行，凭据只落本机 state/，网页不接触令牌内容。
+        若在无 node 的环境，终端跑 <code>python claim.py --snippet</code> 取凭据码，再 <code>--setup-web</code> 保存。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>签到领积分 <small>checkin</small></h2>
+      <div class="field">
+        <label>目标账号</label>
+        <select id="claim-id"></select>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:2px 0 11px;color:var(--muted)">
+        <input type="checkbox" id="claim-travel" checked style="width:auto;margin:0">
+        顺带派猫猫旅行并领奖励（先领后派）
+      </label>
+      <div class="row">
+        <button class="primary" data-act="claim">给选中号签到</button>
+        <button data-act="claim-all">全部号依次签到</button>
+      </div>
+      <div class="sub" id="claim-hint" style="margin-top:9px">
+        「令牌通道」或「网页会话」任一就绪即可签到；没配的点上方「打开授权窗口」登录一次（手机号验证码或扫码都行）。
+        签到是写操作，会弹确认框，且 daily-claim 本身幂等（已领过自动跳过）。
+      </div>
+      <div id="claim-result" class="claim-result" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>全局操作</h2>
+      <div class="btn-grid">
+        <button data-act="doctor">环境自检</button>
+        <button data-act="keepalive_all">批量续期令牌</button>
+        <button data-act="report">生成静态报告</button>
+        <button data-act="export_state">导出安全状态</button>
+        <button data-act="where">查看数据路径</button>
+        <button data-act="brief">一屏概览</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>终端命令速查 <small>需退出客户端 / 导入 RT 时用</small></h2>
+      <div class="field">
+        <label>选择账号</label>
+        <select id="cmd-id"></select>
+      </div>
+      <pre class="cmds" id="cmds">加载中…</pre>
+      <div class="row" style="margin-top:9px">
+        <button class="mini" data-act="copy-cmds">复制全部命令</button>
+        <button class="mini" data-act="copy-switch">只复制切换命令</button>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<footer>
+  wb-accounts · 面板只在本机回环提供服务，一次性 token 随进程销毁 · 快照与令牌均由 Windows DPAPI 加密落盘<br>
+  切换客户端账号前请完全退出 WorkBuddy（含托盘），重开后生效；如需回滚用终端命令。
+</footer>
+</div>
+<div id="dlg" class="dlg-wrap" hidden>
+  <div class="dlg" role="dialog" aria-modal="true">
+    <h3 id="dlg-title">确认</h3>
+    <div id="dlg-body" class="dlg-body"></div>
+    <input id="dlg-input" hidden style="margin-top:12px" autocomplete="off">
+    <label id="dlg-check" class="dlg-opt" hidden>
+      <input type="checkbox" id="dlg-check-box">
+      <span class="dlg-opt-txt">
+        <b class="dlg-opt-t" id="dlg-check-title"></b>
+        <span class="dlg-opt-d" id="dlg-check-label"></span>
+      </span>
+    </label>
+    <div id="dlg-list" class="dlg-list" hidden>
+      <div class="dlg-list-head">
+        <label class="dlg-ck"><input type="checkbox" id="dlg-all"><span id="dlg-cnt"></span></label>
+        <input id="dlg-q" class="dlg-q" placeholder="搜索任务标题 / 分组…" autocomplete="off">
+      </div>
+      <div id="dlg-items" class="dlg-items"></div>
+    </div>
+    <div class="dlg-ops">
+      <button id="dlg-cancel">取消</button>
+      <button id="dlg-ok" class="primary">确定</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<div id="help" class="dlg-wrap" hidden>
+  <div class="dlg help-box" role="dialog" aria-modal="true">
+    <div class="help-head">
+      <h3>📖 使用手册</h3>
+      <button class="mini" id="help-close">✕ 关闭</button>
+    </div>
+    <div class="help-body">
+      <h4>这个面板是什么</h4>
+      <p>本机多账号管家：登记/管理你在本机登录过的 WorkBuddy 账号，看令牌与积分状态、签到领积分、
+      一键切换客户端登录的账号。<b>纯本机服务</b>，只监听 127.0.0.1，页面不含任何令牌明文；
+      打开它<b>不消耗任何积分</b>——积分只随 AI 对话消耗，面板自己用不花钱。</p>
+
+      <h4>日常怎么打开</h4>
+      <ul>
+        <li><b>书签</b>：浏览器打开 <code>http://127.0.0.1:8765</code> 存为书签，随时点开（首次需带
+        <code>?t=…</code> 的链接打开一次让浏览器记住 cookie）。</li>
+        <li><b>开机自启</b>：登录 Windows 后服务自动在后台运行，直接点书签。</li>
+        <li><b>打不开时</b>：双击桌面的 <code>WorkBuddy面板.vbs</code>（会自动启动服务并弹出面板），
+        或 <code>WorkBuddy面板.url</code>（直接开页面）。</li>
+      </ul>
+
+      <h4>账号管理</h4>
+      <ul>
+        <li><b>登记新账号</b>：在客户端登录该号 → 右侧「登记当前账号」填别名 → 点「采集当前登录的账号」。
+        多个号就多次登录、多次采集。</li>
+        <li><b>改别名 / 归档</b>：账号卡片右下角按钮。归档不是删除，快照移入 trash/，可手工恢复。</li>
+        <li><b>令牌状态 / 批量续期</b>：每张卡片可单独看；「全局操作 → 批量续期令牌」一次刷新全部。
+        另有计划任务每天 09:00 自动保活。</li>
+      </ul>
+
+      <h4>签到与积分</h4>
+      <ul>
+        <li><b>签到领积分</b>：账号卡片上点「签到领积分」（写操作会弹确认），或右侧「全部号依次签到」。
+        已签过的当天自动跳过；可顺带派猫猫旅行领奖励。</li>
+        <li><b>积分口径</b>：面板显示两个数——
+        <b>活动积分(累计)</b>是签到/活动攒的总量；<b>账户积分余额</b> = 平台奖励剩余 +
+        套餐本周期剩余（与客户端账号页一致）。注意套餐的「总量池」不计入，所以不要拿它和别的数字直接相加对比。</li>
+        <li><b>余额对不上？</b>积分在实时消耗，面板每次查询都是当下快照。对比时先刷新客户端账号页再看面板。</li>
+        <li><b>某号查不到余额</b>：该号可能只有网页会话、没有令牌通道，只能签到、查不到账户余额。
+        可点「打开授权窗口」重新登录补全。</li>
+      </ul>
+
+      <h4>一键切换客户端账号</h4>
+      <p>账号卡片上点「切换到此号」，面板会自动：完全退出客户端 → 写入该号登录态 → 校验 →
+      <b>自动重新打开客户端</b>。全程 1~2 分钟，<b>会中断当前 AI 对话</b>，弹窗里强确认后才执行。</p>
+      <ul>
+        <li><b>同步任务数据</b>：确认弹窗里默认<b>不勾选</b>。勾上才会把当前账号的任务<b>复制</b>一份到目标号
+        （复制不是转移，原账号任务保留；定时任务不复制；复制前整库备份）。可在列表里只选部分任务。</li>
+        <li><b>记忆不会跟着走</b>：用户级记忆与云端画像按账号分开存放，切换后新账号是空记忆；
+        项目目录下的 <code>.workbuddy/memory/</code> 属于工作区，换号后仍然共享。</li>
+        <li><b>已同步过的任务不会二次更新</b>：同一份任务再切一次会被跳过，旧账号后来新增的对话
+        不会补到副本里；需要刷新得先清掉同步账本里对应的记录。</li>
+        <li><b>切换失败</b>：提示信息会说明卡在哪一步（多为客户端关不掉）。可重试，或终端执行
+        <code>python scripts/wb_accounts.py switch &lt;账号id&gt;</code>。</li>
+      </ul>
+
+      <h4>常见问题</h4>
+      <div class="help-qa"><b>页面提示「无法访问 / 无服务」？</b>
+        <span>服务进程不在了。双击桌面 <code>WorkBuddy面板.vbs</code> 重启服务即可；重启电脑后会自动拉起，无需喊 AI（喊了也只多花积分）。</span></div>
+      <div class="help-qa"><b>积分显示「—」或对不上？</b>
+        <span>「—」= 该号没有令牌通道，点「打开授权窗口」登录一次；数值差异多为实时消耗，刷新客户端后再对比。</span></div>
+      <div class="help-qa"><b>签到按钮灰色？</b>
+        <span>当天已签（显示「已签到 ✓」），或该号通道未就绪——按提示先授权。</span></div>
+      <div class="help-qa"><b>能同时登两个号吗？</b>
+        <span>客户端一次只能登一个号；本面板的意义就是把多个号都登记好，切换时不用重新扫码。</span></div>
+
+      <h4>安全说明</h4>
+      <p>只绑 127.0.0.1 + Host 校验 + token/cookie 鉴权，CSP 禁止外部请求；快照与令牌用 Windows DPAPI
+      加密落盘，只绑当前用户；网页不接触令牌明文，日志自动脱敏（UID/UIN 打码）。「关闭面板」按钮会优雅停掉后台服务。</p>
+
+      <div class="help-tip">💬 面板只是本机查看/管理界面。涉及账号登记、令牌修复、终端命令等更深的操作，
+      仍可让 AI 助手代劳——但打开面板这件事，用书签就够了。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const T = new URLSearchParams(location.search).get('t') || '';
+let S = null, lastOut = '', toastTimer = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, kind){
+  const t = $('toast'); t.textContent = msg; t.className = kind || ''; t.style.display = 'block';
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.style.display='none', 3600);
+}
+let dlgResolve = null;
+function askDlg(o){
+  o = o || {};
+  $('dlg-title').textContent = o.title || '确认';
+  $('dlg-body').textContent = o.body || '';
+  const inp = $('dlg-input');
+  if (o.input){
+    inp.hidden = false;
+    inp.value = o.input.value || '';
+    inp.placeholder = o.input.placeholder || '';
+    setTimeout(() => { inp.focus(); inp.select(); }, 40);
+  } else {
+    inp.hidden = true; inp.value = '';
+  }
+  const ckw = $('dlg-check'), ckb = $('dlg-check-box');
+  const hasList = !!(o.list && o.list.length);
+  if (o.checkbox){
+    ckw.hidden = false;
+    ckb.checked = o.checkbox.checked !== false;
+    $('dlg-check-title').textContent = o.checkbox.title || '选项';
+    $('dlg-check-label').textContent = o.checkbox.label || '';
+    ckw.classList.toggle('on', ckb.checked);
+    ckb.onchange = () => {
+      ckw.classList.toggle('on', ckb.checked);
+      if (hasList) $('dlg-list').hidden = !ckb.checked;
+    };
+  } else {
+    ckw.hidden = true; ckb.checked = false; ckw.classList.remove('on');
+  }
+  if (hasList){
+    dlgItems = o.list;
+    dlgSel = new Set(dlgItems.map(x => x.id));
+    $('dlg-q').value = '';
+    renderDlgItems();
+    $('dlg-list').hidden = !(o.checkbox && ckb.checked);
+  } else {
+    dlgItems = []; dlgSel.clear();
+    $('dlg-list').hidden = true;
+  }
+  $('dlg-ok').textContent = o.okText || '确定';
+  $('dlg-cancel').textContent = o.cancelText || '取消';
+  $('dlg').hidden = false;
+  if (!o.input) setTimeout(() => $('dlg-ok').focus(), 40);
+  return new Promise(res => { dlgResolve = res; });
+}
+let lastDlgCheck = false, lastDlgList = null, dlgItems = [], dlgSel = new Set();
+function closeDlg(val){
+  lastDlgCheck = !!$('dlg-check-box').checked;
+  lastDlgList = dlgItems.length
+    ? (dlgSel.size === dlgItems.length ? 'all' : Array.from(dlgSel))
+    : null;
+  $('dlg').hidden = true;
+  const r = dlgResolve; dlgResolve = null;
+  if (r) r(val);
+}
+function dlgChecked(){ return lastDlgCheck; }
+function dlgListSel(){ return lastDlgList; }
+function fmtSize(n){
+  if (!n) return '0 B';
+  if (n >= 1048576) return (n/1048576).toFixed(1) + ' MB';
+  if (n >= 1024) return (n/1024).toFixed(0) + ' KB';
+  return n + ' B';
+}
+function fmtTs(ts){
+  if (!ts) return '';
+  const ms = ts < 1e12 ? ts * 1000 : ts;
+  const d = new Date(ms);
+  return isNaN(d) ? '' : (d.getFullYear()) + '/' + (d.getMonth()+1) + '/' + d.getDate();
+}
+function updateDlgCnt(){
+  $('dlg-cnt').textContent = '已选 ' + dlgSel.size + ' / ' + dlgItems.length + ' 个任务';
+  $('dlg-all').checked = dlgItems.length > 0 && dlgSel.size === dlgItems.length;
+}
+function renderDlgItems(){
+  const q = ($('dlg-q').value || '').trim().toLowerCase();
+  const rows = [];
+  for (const it of dlgItems){
+    if (q && !((it.title + ' ' + (it.group || '')).toLowerCase().includes(q))) continue;
+    rows.push('<label class="dlg-li"><input type="checkbox" data-sid="' + esc(it.id) + '"' +
+      (dlgSel.has(it.id) ? ' checked' : '') + '><span class="dlg-li-txt">' +
+      '<span class="dlg-li-t">' + esc(it.title) + '</span>' +
+      '<span class="dlg-li-m">' + esc(it.group || '未分组') + ' · ' + esc(fmtTs(it.updated_at)) +
+      ' · ' + esc(fmtSize(it.size || 0)) + '</span></span></label>');
+  }
+  $('dlg-items').innerHTML = rows.join('') ||
+    '<div class="dlg-empty">没有匹配的任务</div>';
+  updateDlgCnt();
+}
+$('dlg-items').addEventListener('change', e => {
+  const cb = e.target;
+  if (!cb.matches || !cb.matches('input[type="checkbox"]')) return;
+  const sid = cb.getAttribute('data-sid');
+  if (cb.checked) dlgSel.add(sid); else dlgSel.delete(sid);
+  updateDlgCnt();
+});
+$('dlg-all').addEventListener('change', () => {
+  dlgSel = $('dlg-all').checked ? new Set(dlgItems.map(x => x.id)) : new Set();
+  renderDlgItems();
+});
+$('dlg-q').addEventListener('input', renderDlgItems);
+function dlgOpen(){ return !$('dlg').hidden; }
+function dlgValue(){
+  const inp = $('dlg-input');
+  return inp.hidden ? true : (inp.value.trim() || null);
+}
+async function req(path, body){
+  const opt = {method: body ? 'POST' : 'GET', headers: {'X-Dashboard-Token': T}};
+  if (body){ opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  let res;
+  try {
+    res = await fetch(path, opt);
+  } catch(e){
+    // 后端被关掉（例如切换账号时客户端退出连带结束面板）时，fetch 直接 reject。
+    // 以前这里会让 Promise 静默失败，页面表现就是「点按钮没反应」；现在明确回报。
+    return {status: 0, data: {ok:false,
+      error: '连不上本地面板服务（后端已停止）。切换账号会关闭客户端并连带结束面板，请重新运行 dashboard 命令打开新链接。'}};
+  }
+  let data = {}; try { data = await res.json(); } catch(e){ data = {ok:false,error:'非 JSON 响应'}; }
+  return {status: res.status, data};
+}
+function copy(text){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('已复制','ok'), ()=>fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+  ta.select(); try { document.execCommand('copy'); toast('已复制','ok'); }
+  catch(e){ toast('复制失败，请手动选中文本','err'); } ta.remove();
+}
+function showResult(r){
+  const d = r.data || {};
+  const head = d.command ? ('$ ' + d.command + '\n\n') : (d.code ? ('[' + d.code + ']\n') : '');
+  const body = d.error ? d.error : JSON.stringify(d.data || d, null, 2);
+  lastOut = head + body;
+  $('out').textContent = lastOut;
+}
+const MUTATIONS = new Set(['capture','label','remove','init','refresh_snapshot','keepalive_all','claim_checkin']);
+let claimState = {};      // id -> {claimed_today, balance, streak, error}：后端当日缓存查询结果
+const claimBusy = new Set();  // 正在签到的账号 id，按钮显示「签到中…」并禁用
+
+function claimedToday(id){
+  const s = claimState[id];
+  return !!(s && s.claimed_today);
+}
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+// 只读查询各账号「今日是否已签」，带当日缓存；失败静默，不影响面板使用
+async function refreshClaimState(){
+  const list = (S && S.list && S.list.accounts) || [];
+  const ids = list.filter(a => chReady(a)).map(a => a.id);
+  if (!ids.length) return;
+  try {
+    const r = await req('/api/action', {action:'claim_state', params:{ids}});
+    if (!(r.status === 200 && r.data && r.data.ok)) return;
+    let changed = false;
+    (r.data.states || []).forEach(st => {
+      const old = claimState[st.id] || {};
+      if (old.claimed_today !== st.claimed_today || old.balance !== st.balance ||
+          old.streak !== st.streak || old.date !== st.date) changed = true;
+      claimState[st.id] = st;
+    });
+    if (changed) renderAccounts();
+  } catch (e) { /* 查询失败不阻塞面板 */ }
+}
+async function act(action, params){
+  const r = await req('/api/action', {action, params: params || {}});
+  showResult(r);
+  const ok = r.status === 200 && r.data && r.data.ok;
+  toast(ok ? ('完成：' + action) : ('失败：' + (r.data && (r.data.error || '检查下方输出') || r.status)),
+        ok ? 'ok' : 'err');
+  if (MUTATIONS.has(action)) await load();
+  return r;
+}
+
+function claimParams(){
+  return {travel: !!($('claim-travel') && $('claim-travel').checked)};
+}
+function claimText(a, travel){
+  return '· 真实调用接口领取今日积分（daily-claim 幂等，已领过自动跳过）\n' +
+    '· ' + (travel ? '含派猫猫旅行并领奖励（先领后派）' : '仅签到，不派猫猫') + '\n\n确定后立刻执行。';
+}
+async function claimOne(id){
+  if (!id) return toast('没有可签到的账号', 'err');
+  const a = ((S && S.list && S.list.accounts) || []).find(x => x.id === id) || {};
+  const name = a.label || id;
+  if (claimedToday(id)){
+    setClaim('「' + name + '」今天已经签过到了（✓ 已签到）。明天再来吧。', 'good');
+    return toast('今天已签到，按钮已置灰', 'ok');
+  }
+  if (claimBusy.has(id)) return toast('「' + name + '」正在签到中，请稍候…');
+  const travel = claimParams().travel;
+  if (!chReady(a)){
+    const go = await askDlg({
+      title: '这个号还没配通道',
+      body: '「' + name + '」没有可用令牌或网页会话，签到会直接返回 no_token。\n\n' +
+            '补法：点右上「打开授权窗口」，用手机号验证码或扫码登录一次即可。\n\n仍要试一次？',
+      okText: '仍要试', cancelText: '先去配令牌'
+    });
+    if (!go) return;
+  }
+  const ok = await askDlg({
+    title: '给「' + name + '」签到？',
+    body: claimText(a, travel),
+    okText: '执行签到'
+  });
+  if (!ok) return;
+  claimBusy.add(id);
+  renderAccounts();
+  setClaim('正在给「' + name + '」签到…', '');
+  const r = await act('claim_checkin', Object.assign({id}, claimParams()));
+  claimBusy.delete(id);
+  const fb = claimFeedback(r);
+  if (fb.claimed){
+    claimState[id] = Object.assign({}, claimState[id] || {},
+      {id, date: todayStr(), claimed_today: true, balance: fb.balance, streak: fb.streak});
+  }
+  setClaim(fb.text, fb.good ? 'good' : 'bad');
+  renderAccounts();
+  return r;
+}
+// 把 daily-claim 的人类可读输出解析成给用户看的反馈
+function claimFeedback(r){
+  const d = (r && r.data) || {};
+  const inner = (d.data && d.data.result) || {};
+  const nested = d.data || {};
+  const text = ((inner.stdout || '') + (inner.stderr || '')).trim() ||
+               nested.error || d.error || '（无输出）';
+  const ok = r && r.status === 200 && d.ok;
+  const balance = (text.match(/账户积分余额[:：]\s*([\d.]+)/) || [])[1] || null;  // 真·积分（小数，如 530.19）
+  const activityCredits = (text.match(/活动积分\(累计\)[:：]\s*(\d+)/) || [])[1] || null;
+  const streak = (text.match(/连续登录[:：]\s*(\d+)/) || [])[1] || null;
+  if (ok && /签到成功/.test(text))
+    return {claimed: true, good: true, balance, streak,
+      text: '✅ 签到成功！今日积分已到账' +
+        (balance ? '，余额 ' + balance + ' 分' : '') +
+        (streak ? '，连续登录 ' + streak + ' 天' : '') +
+        (claimParams().travel ? '\n（含派猫猫旅行，领取/派遣结果见下方控制台）' : '')};
+  if (ok && /今日已签到/.test(text))
+    return {claimed: true, good: true, balance, streak,
+      text: '⏭️ 今天已经签过到了，无需重复（幂等跳过）' +
+        (balance ? '。当前余额 ' + balance + ' 分' : '') + '。'};
+  return {claimed: false, good: ok, balance, streak,
+    text: (ok ? '签到结果：' : '签到失败：') + text};
+}
+function chReady(a){ return !!(a && (a.token_channel || a.web_session)); }
+
+function chText(a){
+  if (!a) return '未知';
+  if (a.token_channel) return '令牌通道已配';
+  if (a.web_session) return '网页会话已配（' + (a.web_kind === 'cookie' ? 'cookie' : 'bearer') + '）';
+  return '未配令牌通道';
+}
+
+function setClaim(msg, kind){
+  const el = $('claim-result');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'claim-result ' + (kind || '');
+  el.hidden = !msg;
+}
+async function claimAll(){
+  const list = (S && S.list && S.list.accounts) || [];
+  const targets = list.filter(a => chReady(a) && !claimedToday(a.id));
+  const already = list.filter(a => chReady(a) && claimedToday(a.id));
+  const skipped = list.filter(a => !chReady(a));
+  if (!targets.length){
+    const msg = already.length ? '全部就绪账号今天都已签到（' + already.map(a => a.label).join('、') + '），明天再来吧'
+                               : '没有可用通道的账号，先用「打开授权窗口」配一个';
+    return toast(msg, already.length ? 'ok' : 'err');
+  }
+  const travel = claimParams().travel;
+  const ok = await askDlg({
+    title: '批量签到：' + targets.length + ' 个号',
+    body: '依次给下列账号签到' + (travel ? '（含派猫猫）' : '（仅签到）') + '：\n' +
+      targets.map(a => '· ' + a.label + ' (' + a.id + ')').join('\n') +
+      (already.length ? '\n\n跳过（今日已签）：' + already.map(a => a.label).join('、') : '') +
+      (skipped.length ? '\n跳过（未配通道）：' + skipped.map(a => a.label).join('、') : '') +
+      '\n\n这是写操作，会真实领取积分，逐个执行、不并发。',
+    okText: '开始签到'
+  });
+  if (!ok) return;
+  setClaim('批量签到中：' + targets.length + ' 个号…', '');
+  const lines = [];
+  $('out').textContent = '';
+  for (const a of targets){
+    claimBusy.add(a.id);
+    renderAccounts();
+    toast('签到中：' + a.label);
+    $('out').textContent = lines.join('\n\n') + (lines.length ? '\n\n' : '') + '… ' + a.label + ' 执行中';
+    let r;
+    try {
+      r = await req('/api/action', {action: 'claim_checkin', params: Object.assign({id: a.id}, claimParams())});
+    } catch (e) {
+      r = {status: 0, data: {ok: false, error: String(e)}};
+    }
+    claimBusy.delete(a.id);
+    const fb = claimFeedback(r);
+    if (fb.claimed){
+      claimState[a.id] = Object.assign({}, claimState[a.id] || {},
+        {id: a.id, date: todayStr(), claimed_today: true, balance: fb.balance, streak: fb.streak});
+    }
+    renderAccounts();
+    lines.push('【' + a.label + ' · ' + a.id + '】' + (fb.good ? '完成' : '失败') + '\n' + fb.text);
+  }
+  lastOut = lines.join('\n\n');
+  $('out').textContent = lastOut;
+  const doneOk = lines.filter(x => x.includes('】完成')).length;
+  setClaim('批量签到结束：' + doneOk + '/' + targets.length + ' 成功。' +
+    (doneOk < targets.length ? '失败原因见下方控制台。' : '') +
+    (already.length ? '\n另有 ' + already.length + ' 个号今天已签过，自动跳过。' : ''),
+    doneOk ? 'good' : 'bad');
+  toast('全部签到执行完毕', 'ok');
+  await load();
+}
+
+let swTimer = null;
+function scheduleSwitchPoll(){
+  clearTimeout(swTimer);
+  swTimer = setTimeout(async () => {
+    try {
+      const r = await req('/api/action', {action:'switch_status', params:{}});
+      if (r.data && r.data.ok){ S.switch_state = r.data; renderSwitchBanner(r.data); }
+    } catch (e) { /* 面板即将随客户端退出，失败无需处理 */ }
+  }, 3000);
+}
+function renderSwitchBanner(st){
+  const box = $('switch-banner'); if (!box) return;
+  st = st || {};
+  const state = st.state || 'idle';
+  if (state === 'idle' || state === 'ack'){ box.innerHTML = ''; return; }
+  const at = st.at ? '（' + st.at + '）' : '';
+  if (state === 'pending' || state === 'closing' || state === 'switching'){
+    box.innerHTML = '<div class="alert warn"><b>正在切换账号…</b> ' + esc(st.message || '') +
+      '<br>约 3 秒后 WorkBuddy 会自动关闭（本对话中断），随后写入目标登录态并自动重开，' +
+      '重开即是「' + esc(st.label || st.id || '目标账号') + '」。' +
+      '<br><span class="sub">若 30 秒内仍没关闭，请手动退出 WorkBuddy（含托盘）；切换进程会在客户端退出后自动完成。</span></div>';
+    scheduleSwitchPoll();
+    return;
+  }
+  if (state === 'done'){
+    box.innerHTML = '<div class="alert good"><b>✓ 上次切换成功' + esc(at) + '</b>：' + esc(st.message || '') +
+      (st.relaunch_note ? '<br>' + esc(st.relaunch_note) + '。' : '<br>请重新打开 WorkBuddy。') +
+      ' <button class="mini" data-act="switch_ack">知道了</button></div>';
+    return;
+  }
+  box.innerHTML = '<div class="alert warn"><b>✗ 上次切换失败' + esc(at) + '</b>：' + esc(st.message || '') +
+    '<br>可重试，或到终端执行 <code>python scripts/wb_accounts.py switch &lt;id&gt;</code>。' +
+    ' <button class="mini" data-act="switch_ack">知道了</button></div>';
+}
+async function switchClient(id){
+  const a = ((S && S.list && S.list.accounts) || []).find(x => x.id === id) || {};
+  const name = a.label || id;
+  if (!id) return toast('没有选择账号', 'err');
+  if (a.is_current_client) return toast('客户端当前已经是「' + name + '」', 'ok');
+  if (!a.snapshot_ok) return toast('「' + name + '」没有可用快照，请先在客户端登录该号并采集', 'err');
+  let plan = null;
+  try {
+    const pr = await req('/api/action', {action:'sync_plan', params:{}});
+    if (pr.status === 200 && (pr.data || {}).ok) plan = pr.data;
+  } catch(e){ /* 取不到列表就不展示勾选，仍按全部同步 */ }
+  const ok = await askDlg({
+    title: '切换到「' + name + '」？',
+    body: '· 会先关闭 WorkBuddy 客户端 —— 本对话立即中断\n' +
+          '· 再把「' + name + '」的登录态写入客户端（自动备份当前登录态，可用 rollback 回退）\n' +
+          '· 完成后自动重新打开 WorkBuddy，登录的就是该账号\n\n' +
+          '请先保存手头未保存的内容，切换过程中不要手动结束进程。',
+    checkbox: {
+      title: '同步任务数据',
+      label: '把当前账号的任务复制一份到「' + name + '」——是复制不是转移，原账号任务全部保留。' +
+             '勾选后默认全部同步，可在下方列表里取消勾选、只选部分；不勾选则不复制任何任务。' +
+             '定时任务不复制；复制前整库备份。' +
+             (plan ? '' : '\n（任务列表读取失败，将按全部同步处理）'),
+      checked: false
+    },
+    list: plan ? (plan.items || []) : null,
+    okText: '退出并切换',
+    cancelText: '取消'
+  });
+  if (!ok) return;
+  const useSync = dlgChecked();
+  const r = await act('switch_client', {id, sync_tasks: useSync,
+    sync_selection: useSync ? dlgListSel() : null});
+  const d = r.data || {};
+  if (r.status === 200 && d.ok){
+    S.switch_state = {state:'pending', id, label:name,
+      at: new Date().toLocaleString('zh-CN'), message: d.message || '正在关闭客户端并切换…'};
+    renderSwitchBanner(S.switch_state);
+    toast('开始切换：约 3 秒后自动关闭 WorkBuddy…', 'ok');
+  } else {
+    toast('无法切换：' + (d.error || ('HTTP ' + r.status)), 'err');
+  }
+}
+async function switchAck(){
+  try {
+    const r = await req('/api/action', {action:'switch_ack', params:{}});
+    S.switch_state = (r.data && r.data.ok) ? r.data : {state:'idle'};
+  } catch (e) { S.switch_state = {state:'idle'}; }
+  renderSwitchBanner(S.switch_state);
+}
+
+function verdictTag(v){
+  const map = {ok:['正常','ok'], expiring:['7天内到期','warn'], expired:['已过期','bad'], unknown:['未知','']};
+  const [t,c] = map[v] || ['未知',''];
+  return '<span class="tag ' + c + '">' + t + '</span>';
+}
+let authTimer = null, authBusy = false;
+function renderAuth(){
+  const box = $('auth-state'); if (!box) return;
+  const list = (S && S.list && S.list.accounts) || [];
+  if (!list.length){
+    box.innerHTML = '<div class="sub">保险库里还没有账号。先在下方「登记当前账号」采集一个。</div>';
+    return;
+  }
+  box.innerHTML = list.map(a => {
+    const ok = chReady(a);
+    return '<div class="auth-row">' +
+      '<span class="tag ' + (ok ? 'ok' : 'warn') + '">' + (ok ? '已配' : '未配') + '</span>' +
+      '<b>' + esc(a.label || a.id) + '</b><code>' + esc(a.id) + '</code>' +
+      '<span class="sub">' + (ok ? chText(a) : '签到会返回 no_token') + '</span></div>';
+  }).join('');
+}
+async function authStart(fresh){
+  if (fresh){
+    const go = await askDlg({
+      title: '换号登录（清空上次会话）？',
+      body: '将清除授权窗口里残留的上次登录状态，弹出的窗口会是全新登录页，用新账号登录即可。\n\n' +
+            '注意：网页会话凭据是全局单份，新号登录成功后会替换上一个号的会话\n' +
+            '（上一个号的令牌通道不受影响，仍可签到）。',
+      okText: '清会话并打开'
+    });
+    if (!go) return;
+  }
+  const r = await req('/api/action', {action: 'auth_browser', params: {fresh: !!fresh}});
+  const d = r.data || {};
+  if (!(r.status === 200 && d.ok)) return toast('打开授权窗口失败：' + (d.error || r.status), 'err');
+  const log = $('auth-log');
+  log.hidden = false;
+  log.textContent = (d.message || '') + '\n';
+  toast(d.message || (fresh ? '已清空旧会话，请在窗口里登录新账号' : '授权窗口已打开'), 'ok');
+  authBusy = true;
+  pollAuth(0);
+}
+async function pollAuth(n){
+  clearTimeout(authTimer);
+  if (!authBusy) return;
+  const r = await req('/api/action', {action: 'auth_log', params: {}});
+  const d = r.data || {};
+  const log = $('auth-log');
+  if (d.ok){
+    log.hidden = false;
+    log.textContent = (d.lines || []).join('\n') || '[等待输出…]';
+    log.scrollTop = log.scrollHeight;
+    if (!d.running){
+      authBusy = false;
+      await load();
+      const done = ((S && S.list && S.list.accounts) || []).some(chReady);
+      return toast(done ? '授权完成：令牌已配置，可以签到了'
+                        : ('授权窗口已退出（退出码 ' + d.exit_code + '），详情见日志'),
+                   done ? 'ok' : 'err');
+    }
+  }
+  if (n < 240) authTimer = setTimeout(() => pollAuth(n + 1), 2500);
+}
+function renderAccounts(){
+  const list = (S && S.list && S.list.accounts) || [];
+  $('acct-sub').textContent = list.length ? (list.length + ' 个') : '';
+  if (!list.length){
+    $('accounts').innerHTML = '<div class="empty">保险库里还没有账号。<br>先在 WorkBuddy 客户端登录，再用右侧「登记当前账号」采集。</div>';
+  } else {
+    $('accounts').innerHTML = list.map(a => {
+      const st = claimState[a.id] || {};
+      const tags = [
+        a.is_current_client ? '<span class="tag cur">客户端当前</span>' : '',
+        a.is_active ? '<span class="tag">上次切换目标</span>' : '',
+        chReady(a) ? '<span class="tag ok">' + (a.token_channel ? '令牌通道已配' : '网页会话已配') + '</span>' : '<span class="tag warn">未配令牌通道</span>',
+        claimBusy.has(a.id) ? '<span class="tag today">签到中…</span>'
+          : (st.claimed_today ? '<span class="tag today">✓ 今日已签' +
+              (st.balance ? ' · 积分 ' + esc(st.balance) : '') + '</span>' : ''),
+        verdictTag(a.expiry)
+      ].join('');
+      return '<div class="acct ' + (a.is_current_client ? 'cur' : '') + '">' +
+        '<div class="acct-head"><div><div class="acct-title">' + esc(a.label) +
+        '<code>' + esc(a.id) + '</code></div><div class="tags">' + tags + '</div></div>' +
+        '<div><button class="mini" data-act="switch_preview" data-id="' + esc(a.id) + '">切换预览</button></div></div>' +
+        '<div class="meta">' +
+          '<span>UID <b>' + esc(a.uid_masked) + '</b></span>' +
+          '<span>UIN <b>' + esc(a.uin_masked) + '</b></span>' +
+          '<span>access 到期 <b>' + esc((a.expires_at || '—').slice(0,19)) + '</b></span>' +
+          '<span>refresh 到期 <b>' + esc((a.refresh_expires_at || '—').slice(0,19)) + '</b></span>' +
+          '<span>采集 <b>' + esc((a.captured_at || '—').slice(0,19)) + '</b></span>' +
+          '<span>刷新 <b>' + esc((a.refreshed_at || '—').slice(0,19)) + '</b></span>' +
+          '<span>快照 <b>' + (a.snapshot_ok ? '已加密保存' : '缺失') + '</b></span>' +
+          '<span>信封 <b>' + (a.encrypted ? '客户端加密' : '明文') + '</b></span>' +
+        '</div>' +
+        (a.note ? '<div class="sub" style="margin-bottom:9px">备注：' + esc(a.note) + '</div>' : '') +
+        '<div class="sub" style="margin-bottom:9px">账户积分余额：<b>' + (st.balance ? esc(st.balance) : '—') +
+          '</b> · 活动积分(累计)：<b>' + (st.activity_credits != null ? esc(st.activity_credits) : '—') + '</b>' +
+          (st.balance ? '' : ' · 该号仅网页会话、无令牌通道，查不到账户余额') + '</div>' +
+        '<div class="ops">' +
+          '<button class="mini" data-act="copy_switch" data-id="' + esc(a.id) + '">复制切换命令</button>' +
+          (a.is_current_client
+            ? '<button class="mini" disabled title="客户端当前登录的就是这个号">当前账号</button>'
+            : '<button class="mini sw" data-act="switch_client" data-id="' + esc(a.id) + '">切换到此号</button>') +
+          '<button class="mini" data-act="refresh_snapshot" data-id="' + esc(a.id) + '">刷新快照</button>' +
+          '<button class="mini" data-act="token_status" data-id="' + esc(a.id) + '">令牌状态</button>' +
+          '<button class="mini" data-act="token_recover" data-id="' + esc(a.id) + '">从客户端恢复令牌</button>' +
+          '<button class="mini" data-act="run_as_status" data-id="' + esc(a.id) + '">查账号状态</button>' +
+          (claimBusy.has(a.id)
+            ? '<button class="mini busy" disabled>签到中…</button>'
+            : (st.claimed_today
+                ? '<button class="mini done" disabled title="今日已签到，明天再来">已签到 ✓</button>'
+                : '<button class="mini' + (chReady(a) ? ' go' : '') + '" data-act="claim" data-id="' + esc(a.id) + '">签到领积分</button>')) +
+          '<button class="mini" data-act="label" data-id="' + esc(a.id) + '">改别名</button>' +
+          '<button class="mini danger" data-act="remove" data-id="' + esc(a.id) + '">归档</button>' +
+        '</div></div>';
+    }).join('');
+  }
+  const sel = $('cmd-id'), prev = sel.value;
+  sel.innerHTML = list.length ? list.map(a =>
+    '<option value="' + esc(a.id) + '">' + esc(a.label) + ' (' + esc(a.id) + ')</option>').join('')
+    : '<option value="main">main</option>';
+  if (list.some(a => a.id === prev)) sel.value = prev;
+  const csel = $('claim-id'), cprev = csel.value;
+  csel.innerHTML = list.length ? list.map(a =>
+    '<option value="' + esc(a.id) + '">' + esc(a.label) + ' (' + esc(a.id) + ')' +
+    (claimBusy.has(a.id) ? ' · 签到中' : claimedToday(a.id) ? ' · 今日已签' : '') +
+    (chReady(a) ? '' : ' · 未配令牌') + '</option>').join('')
+    : '<option value="">（还没有账号）</option>';
+  if (list.some(a => a.id === cprev)) csel.value = cprev;
+  const need = list.filter(a => !chReady(a)).length;
+  const signed = list.filter(a => claimedToday(a.id)).length;
+  $('claim-hint').innerHTML = list.length
+    ? (need ? '有 <b>' + need + '</b> 个号还没配通道，点上方「打开授权窗口」扫一次码即可。'
+            : '全部账号通道已就绪，可以直接签。')
+      + (signed ? ' 今日已签 <b>' + signed + '</b> 个（按钮已置灰）。' : '')
+      + ' 签到是写操作，会弹确认框；daily-claim 幂等，已领过自动跳过。'
+    : '先在客户端登录并采集一个账号，配好令牌通道后才能签到。';
+  renderCommands();
+}
+function renderCommands(){
+  const id = $('cmd-id').value || 'main';
+  const v = (S && S.vault) || 'scripts/wb_accounts.py';
+  const q = 'python "' + v + '"';
+  $('cmds').textContent =
+    '# 1. 预览（客户端开着也能跑）\n' + q + ' switch ' + id + ' --dry-run\n\n' +
+    '# 2. 完全退出 WorkBuddy 后，在终端执行真实切换\n' + q + ' switch ' + id + '\n\n' +
+    '# 3. 不对就回滚（同样需退出客户端）\n' + q + ' rollback\n\n' +
+    '# 4. 导入 refresh token（值不进网页、不落命令行历史）\n' +
+    "printf '%s' '<RT>' | " + q + ' token import ' + id + ' --stdin\n\n' +
+    '# 5. 批量续期 / 按账号查状态\n' + q + ' keepalive --all\n' + q + ' run-as ' + id + ' status\n\n' +
+    '# 6. 打开可视化面板\n' + q + ' dashboard';
+}
+function render(){
+  const brief = S.brief || {}, list = (S && S.list && S.list.accounts) || [];
+  $('ver-badge').textContent = 'v' + (S.version || '?');
+  $('k-count').textContent = list.length;
+  $('k-active').textContent = '上次切换目标：' + (S && S.list && S.list.active || brief.active || '无');
+  $('k-token').textContent = list.filter(chReady).length;
+  const warn = list.filter(a => a.expiry === 'expiring' || a.expiry === 'expired');
+  $('k-warn').textContent = warn.length;
+  const cur = (brief.accounts || []).find(a => a.is_current);
+  $('k-current').textContent = cur ? cur.label : '未登记';
+  $('k-uid').textContent = 'uid ' + (brief.current_uid_masked || '未知');
+  const checks = (S.doctor && S.doctor.checks) || [];
+  const cp = checks.find(c => c.item === '客户端进程');
+  const running = cp && /运行中/.test(cp.detail || '');
+  $('client-badge').innerHTML = '<i class="dot ' + (running ? 'a' : 'g') + '"></i>' +
+    (running ? '客户端运行中 · 切换需先退出' : '客户端未运行 · 可执行切换') +
+    (S.doctor ? ' · 自检' + (S.doctor.all_required_ok ? '通过' : '有异常') : '');
+  $('alert').innerHTML = warn.length
+    ? '<div class="alert warn">⚠ ' + warn.length + ' 个账号登录态临近/已过期：' +
+      warn.map(a => esc(a.id)).join('、') + '。可在客户端登录该账号后点「刷新快照」，或用「批量续期令牌」。</div>'
+    : '<div class="alert good">✓ 全部账号快照在有效期内。令牌通道用于长期保活，别忘记定期续期。</div>';
+  const ac = S.auto_capture || {};
+  let acHtml = '';
+  if (ac.ok && ac.action === 'capture')
+    acHtml = '<div class="alert good">✓ 打开即采集：' + esc(ac.message || '') +
+      ' —— 新账号 id <code>' + esc(ac.id || '') + '</code>，可在右侧改别名。</div>';
+  else if (ac.ok && ac.action === 'refresh')
+    acHtml = '<div class="alert good">✓ 打开即同步：' + esc(ac.message || '') + '，快照已是最新。</div>';
+  else if (ac.action === 'skipped')
+    acHtml = '<div class="alert warn">自动采集跳过：' + esc(ac.message || '') + '</div>';
+  else if (ac.action && !ac.ok)
+    acHtml = '<div class="alert warn">自动采集 / 同步未成功：' + esc(ac.message || ac.action) + '</div>';
+  $('auto-cap').innerHTML = acHtml;
+  const atk = S.auto_tokens || {}, td = atk.detail || {};
+  let atHtml = '';
+  if (td.ok){
+    const rs = td.results || [], done = rs.filter(r => r.ok), pend = rs.filter(r => !r.ok);
+    atHtml = '<div class="alert good">✓ 打开即配置令牌通道：<b>' + done.length + '/' + (td.count || 0) +
+      '</b> 已就绪（' + (td.atrest_key ? '本机密钥已固化，全自动' : '本机密钥未固化') + '）' +
+      (done.length ? ' · ' + done.map(r => esc(r.id) + (r.action === 'recovered' ? ' 本次恢复' : ' 已续期')).join('、') : '') +
+      '</div>';
+    if (pend.length) atHtml += '<div class="alert warn">待配置：' +
+      pend.map(r => esc(r.id) + ' ' + esc(r.reason || r.error || r.action)).join('；') + '</div>';
+  } else if (atk.ok === false || atk.error){
+    atHtml = '<div class="alert warn">令牌通道自动配置失败：' + esc(atk.error || '未知原因') + '</div>';
+  }
+  const bs = atk.bootstrap || {};
+  if (bs.running) atHtml += '<div class="sub">⏳ 正在后台固化本机密钥（只读客户端自身内存，完成后自动重配）…</div>';
+  else if (bs.result) atHtml += '<div class="sub">' +
+    (bs.result.ok ? '✓ 本机密钥已固化' : '本机密钥固化未成功：' + esc((bs.result.message || '').slice(-160))) +
+    '</div>';
+  $('auto-token').innerHTML = atHtml;
+  renderSwitchBanner(S.switch_state);
+  renderAccounts();
+  renderAuth();
+}
+async function load(){
+  $('out').textContent = $('out').textContent || '正在读取账号状态…';
+  const r = await req('/api/state');
+  if (r.status === 403){ document.body.innerHTML = '<div class="wrap"><div class="alert warn">访问被拒绝：链接里的一次性 token 无效或已过期。请重新运行 dashboard 命令打开新链接。</div></div>'; return; }
+  if (r.status === 0){ document.body.innerHTML = '<div class="wrap"><div class="alert warn">本地面板服务已停止，这个页面上的按钮不会再有响应。<br>切换账号会关闭 WorkBuddy 客户端并连带结束面板进程；重新运行 <code>python scripts/dashboard.py</code> 打开新链接即可。</div></div>'; return; }
+  if (!r.data.ok){ toast('读取状态失败：' + (r.data.error || r.status), 'err'); showResult(r); return; }
+  S = r.data; render();
+  // 拉取「今日是否已签」（后端当日缓存），把已签到的按钮置灰成「已签到」
+  refreshClaimState();
+}
+
+// 兜底：任何未捕获的异步失败都要有可见反馈，不能让按钮「点了没反应」
+window.addEventListener('unhandledrejection', ev => {
+  const msg = (ev.reason && ev.reason.message) || '未知错误，请确认本地面板仍在运行';
+  toast('操作失败：' + msg, 'err');
+});
+$('dlg-ok').addEventListener('click', () => closeDlg(dlgValue()));
+$('dlg-cancel').addEventListener('click', () => closeDlg(null));
+$('dlg').addEventListener('click', ev => { if (ev.target === $('dlg')) closeDlg(null); });
+// 使用手册：✕ 关闭、点遮罩关闭、Esc 关闭
+$('help-close').addEventListener('click', () => { $('help').hidden = true; });
+$('help').addEventListener('click', ev => { if (ev.target === $('help')) $('help').hidden = true; });
+document.addEventListener('keydown', ev => {
+  if (!$('help').hidden && ev.key === 'Escape'){ ev.preventDefault(); $('help').hidden = true; return; }
+  if (!dlgOpen()) return;
+  if (ev.key === 'Escape'){ ev.preventDefault(); closeDlg(null); }
+  else if (ev.key === 'Enter'){ ev.preventDefault(); closeDlg(dlgValue()); }
+});
+
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest('button[data-act]'); if (!b) return;
+  const actName = b.dataset.act, id = b.dataset.id || $('cmd-id').value;
+  if (actName === 'reload') return load();
+  if (actName === 'help'){ $('help').hidden = false; return; }
+  if (actName === 'copy-out') return copy(lastOut);
+  if (actName === 'copy-cmds') return copy($('cmds').textContent);
+  if (actName === 'copy-switch') return copy('python "' + ((S && S.vault) || 'scripts/wb_accounts.py') + '" switch ' + id);
+  if (actName === 'copy_switch') return copy('python "' + ((S && S.vault) || 'scripts/wb_accounts.py') + '" switch ' + id);
+  if (actName === 'auth-start') return authStart(false);
+  if (actName === 'auth-fresh') return authStart(true);
+  if (actName === 'auth-check'){ await load(); return toast('状态已刷新', 'ok'); }
+  if (actName === 'claim') return claimOne(b.dataset.id || $('claim-id').value);
+  if (actName === 'claim-all') return claimAll();
+  if (actName === 'switch_client') return switchClient(b.dataset.id);
+  if (actName === 'switch_ack') return switchAck();
+  if (actName === 'shutdown'){
+    const go = await askDlg({title:'关闭本地面板？', body:'后台服务会立刻停止，这个页面就不能再操作了。\n需要时重新运行 wb_accounts.py dashboard 打开。', okText:'关闭面板'});
+    if (!go) return;
+    const r = await req('/api/shutdown', {});
+    document.body.innerHTML = '<div class="wrap"><div class="card"><h2>面板已关闭</h2><p class="sub">后台服务已停止，可以关掉这个标签页。需要时重新运行 <code>wb_accounts.py dashboard</code>。</p></div></div>';
+    return;
+  }
+  if (actName === 'capture'){
+    const label = $('cap-label').value.trim();
+    if (!label) return toast('先填别名','err');
+    const params = {label};
+    if ($('cap-id').value.trim()) params.id = $('cap-id').value.trim();
+    if ($('cap-note').value.trim()) params.note = $('cap-note').value.trim();
+    const r = await act('capture', params);
+    if (r.data && r.data.ok) { $('cap-label').value=''; $('cap-id').value=''; $('cap-note').value=''; }
+    return;
+  }
+  if (actName === 'label'){
+    const name = await askDlg({title:'改别名', body:'给账号 ' + id + ' 换个别名（好认就行，例如「主号」「小号A」）：',
+      input:{placeholder:'主号'}, okText:'保存'});
+    if (!name) return;
+    return act('label', {id, name: String(name).trim()});
+  }
+  if (actName === 'remove'){
+    const go = await askDlg({title:'归档账号 ' + id + '？', body:'快照与令牌会移入 trash/，不是真删，可以手工恢复。', okText:'归档'});
+    if (!go) return;
+    return act('remove', {id});
+  }
+  const map = {
+    switch_preview:'switch_preview', refresh_snapshot:'refresh_snapshot', token_status:'token_status',
+    token_recover:'token_recover', run_as_status:'run_as_status', current:'current', doctor:'doctor',
+    keepalive_all:'keepalive_all', report:'report', export_state:'export_state', where:'where', brief:'brief'
+  };
+  if (map[actName]){
+    const needsId = ['switch_preview','refresh_snapshot','token_status','token_recover','run_as_status'];
+    return act(map[actName], needsId.includes(actName) ? {id} : {});
+  }
+});
+$('cmd-id').addEventListener('change', renderCommands);
+load();
+</script>
+</body>
+</html>

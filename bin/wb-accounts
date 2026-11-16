@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# wb-accounts CLI 入口（插件启用后由 WorkBuddy 加入 PATH）
+exec python "$(dirname "$0")/../scripts/wb_accounts.py" "$@"
